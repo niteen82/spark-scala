@@ -1,0 +1,407 @@
+===================
+SPARK
+===================
+
+sudo apt install scala
+
+scala -version
+
+wget https://archive.apache.org/dist/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
+
+tar -xvzf spark-3.3.1-bin-hadoop3.tgz
+
+sudo mv spark-3.3.1-bin-hadoop3 /mnt/spark
+
+nano ~/.bashrc
+
+start-master.sh
+
+ss -tpln | grep 8080
+
+start-worker.sh spark://your-server-ip:7077
+
+spark-shell
+
+import org.apache.spark._
+import org.apache.spark.streaming._
+import org.apache.spark.streaming.StreamingContext._
+
+--------------------------------------------------------------------------------------------------
+windows
+-----------------------------------------------------
+https://spark.apache.org/downloads.html
+
+https://sourceforge.net/projects/portableapps/files/JDK/jdk-8u201-windows-x64.exe/download
+
+update env
+
+JAVA_HOME = C:\Program Files\Java\jdk1.8.0_201
+PATH = %PATH%;%JAVA_HOME%
+
+SPARK_HOME  = C:\apps\opt\spark-3.2.4-bin-hadoop2.7
+HADOOP_HOME = C:\apps\opt\spark-3.2.4-bin-hadoop2.7
+PATH=%PATH%;%SPARK_HOME%
+
+
+Download win binaries for hadoop
+
+https://github.com/steveloughran/winutils/blob/master/hadoop-2.7.1/bin/winutils.exe
+
+copy to spark bin folder
+
+
+--------------------------------------------------------
+
+1. Read file from local machine
+
+val data = sc.textFile("data.txt")
+
+
+2. Creat RDD & Parallelizing
+
+val num = Array (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+val NewData = sc.parallelize(num)
+
+
+3. Count items in RDD
+
+NewData.count
+
+
+4. For debug
+  
+NewData.collect
+
+
+5. Read values from RDD
+
+NewData.take(4)
+
+
+6. Save output/processed data into the text file
+
+NewData.saveAsTextFile("output")
+
+
+---------------------------------------------------------------------
+Filter RDD
+-------------------------------------------
+
+val sc = spark.sparkContext
+
+val rdd = sc.textFile("input.txt")
+
+D:\niks soft\input.txt
+
+1. Flat Map
+
+val rdd2 = rdd.flatMap(f=>f.split(" "))
+
+val dataColl=rdd2.collect()
+  
+dataColl.foreach(println)
+
+
+
+2. Map
+
+val rdd3 = rdd2.map(m=>(m,1))
+
+val dataColl=rdd3.collect()
+  
+dataColl.foreach(println)
+
+
+3. filter Transformation
+
+val rdd4 = rdd3.filter(a=> a._1.startsWith("a"))
+
+val dataColl=rdd4.collect()
+  
+dataColl.foreach(println)
+
+
+4. reduceByKey transformation
+
+val rdd5 = rdd3.reduceByKey(_ + _)
+
+val dataColl=rdd5.collect()
+
+dataColl.foreach(println)
+
+
+5. sortByKey Transformation
+
+val rdd6 = rdd5.map(a=>(a._2,a._1)).sortByKey()
+
+rdd6.foreach(println)
+
+
+
+=========================================================
+RDD Partions
+=========================================================
+
+val rdd = spark.sparkContext.parallelize(Range(0,20))
+println("From local[5]"+rdd.partitions.size)
+
+val rdd1 = spark.sparkContext.parallelize(Range(0,20), 6)
+println("parallelize : "+rdd1.partitions.size)
+
+
+val rddFromFile = spark.sparkContext.textFile("input.txt",10)
+println("TextFile : "+rddFromFile.partitions.size)
+
+
+rdd1.saveAsTextFile("partition")
+
+--------------------------------
+to view local files from scala
+
+import sys.process._
+
+"ls" !
+
+------------------------------------
+RDD repartition
+---------------
+
+val rdd2 = rdd1.repartition(4)
+
+println("Repartition size : "+rdd2.partitions.size)
+
+rdd2.saveAsTextFile("re-partition")
+
+
+---------------------
+RDD coalesce
+---------------------
+
+val rdd3 = rdd1.coalesce(4)
+
+println("Repartition size : "+rdd3.partitions.size)
+
+rdd3.saveAsTextFile("coalesce")
+
+
+----------------------------------------
+Spark DataFrame repartition
+---------------------------
+
+val df = spark.range(0,20)
+ 
+println(df.rdd.partitions.length)
+
+df.write.csv("partition.csv")
+
+--------------------
+val df2 = df.repartition(6)
+
+println(df2.rdd.partitions.length)
+
+=====================================================
+SQL
+=====================================================
+
+import spark.implicits._
+
+val columns = Seq("language","users_count")
+
+val data = Seq(("Java", "20000"), ("Python", "100000"), ("Scala", "3000"))
+
+ val rdd = spark.sparkContext.parallelize(data)
+
+val dfFromRDD1 = rdd.toDF()
+
+dfFromRDD1.printSchema()
+
+
+
+val dfFromRDD1 = rdd.toDF("language","users_count")
+
+dfFromRDD1.printSchema()
+
+
+====================================================
+Reading CSV
+
+
+val df2 = spark.read.text("file.txt")
+
+df.show()
+
+----------------------------------
+
+val columns = Seq("Seqno","Quote")
+val data = Seq(("1", "Be the change that you wish to see in the world"),
+    ("2", "Everyone thinks of changing the world, but no one thinks of changing himself."),
+    ("3", "The purpose of our lives is to be happy."),
+    ("4", "Be cool."))
+val df = data.toDF(columns:_*)
+df.show()
+
+
+df.show(false)
+
+
+---------------------------
+DF Where syntax
+
+import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType, ArrayType}
+import org.apache.spark.sql.Row
+ 
+val arrayStructureData = Seq(
+    Row(Row("Javed","","Shaikh"),List("Java","Scala","C++"),"UP","M"),
+    Row(Row("Kenedy","Raji",""),List("Spark","Java","C++"),"MP","F"),
+    Row(Row("Julia","","Dcosta"),List("CSharp","VB"),"DEL","F"),
+    Row(Row("Mark","","Johari"),List("CSharp","VB"),"MH","M"),
+    Row(Row("Jen","Mangu",""),List("CSharp","VB"),"MH","M"),
+    Row(Row("Minal","Mangat",""),List("Python","VB"),"MH","M")
+  )
+
+val arrayStructureSchema = new StructType().add("name",new StructType().add("firstname",StringType).add("middlename",StringType).add("lastname",StringType)).add("languages", ArrayType(StringType)).add("state", StringType).add("gender", StringType)
+
+
+val df = spark.createDataFrame(spark.sparkContext.parallelize(arrayStructureData),arrayStructureSchema)
+
+df.printSchema()
+df.show()
+
+--------------------------------
+
+Dataframe where
+
+df.where(df("state") === "MH").show(false)
+
+---------------------------
+SQL where
+
+df.where("gender == 'M'").show(false)
+
+------------------------------------
+
+  // Multiple condition
+  df.where(df("state") === "MH" && df("gender") === "M").show(false)
+
+-------------------------------------------
+
+// Filtering on an Array column
+  df.where(array_contains(df("languages"),"Java")).show(false)
+
+
+==================================================
+
+Column rename
+
+
+val data = Seq(Row(Row("James ","","Smith"),"36636","M",3000),
+  Row(Row("Michael ","Rose",""),"40288","M",4000),
+  Row(Row("Robert ","","Williams"),"42114","M",4000),
+  Row(Row("Maria ","Anne","Jones"),"39192","F",4000),
+  Row(Row("Jen","Mary","Brown"),"","F",-1)
+)
+
+
+val schema = new StructType().add("name",new StructType().add("firstname",StringType).add("middlename",StringType).add("lastname",StringType)).add("dob",StringType).add("gender",StringType).add("salary",IntegerType)
+
+
+val df = spark.createDataFrame(spark.sparkContext.parallelize(data),schema)
+df.printSchema()
+
+
+df.withColumnRenamed("dob","DateOfBirth").printSchema()
+
+--------------------------------------------------------------------------------
+
+DROP COLUMN
+
+
+
+// Drop one column from DataFrame 
+  val df2 = df.drop("firstname") // First signature
+  df2.printSchema()
+
+  df.drop(df("firstname")).printSchema()
+
+  // Import org.apache.spark.sql.functions.col is required
+  df.drop(col("firstname")).printSchema() //Third signature
+
+
+
+Drop multiple columns
+--------------------------------------
+
+  // Refering more than one column
+
+  df.drop("firstname","middlename","lastname").printSchema()
+
+  // Using array/sequence of columns
+ val cols = Seq("firstname","middlename","lastname")
+ df.drop(cols:_*).printSchema()
+
+
+-------------------------------------------------------
+
+Collect 
+
+
+  val colList = df.collectAsList()
+  val colData = df.collect()
+  colData.foreach(row=>
+  {
+    val salary = row.getInt(3)//Index starts from zero
+    println(salary)
+  })
+
+---------------------------------------------------
+
+Retrieving data from Struct column
+
+
+
+  //Retrieving data from Struct column
+  colData.foreach(row=>
+  {
+    val salary = row.getInt(3)
+    val fullName:Row = row.getStruct(0) //Index starts from zero
+    val firstName = fullName.getString(0)//In struct row, again index starts from zero
+    val middleName = fullName.get(1).toString
+    val lastName = fullName.getAs[String]("lastname")
+    println(firstName+","+middleName+","+lastName+","+salary)
+  })
+
+-------------------------------------------------------------------------
+
+ORC Format
+
+
+
+val data =Seq(("James ","","Smith","36636","M",3000),
+  ("Michael ","Rose","","40288","M",4000),
+  ("Robert ","","Williams","42114","M",4000),
+  ("Maria ","Anne","Jones","39192","F",4000),
+  ("Jen","Mary","Brown","","F",-1))
+
+val columns=Seq("firstname","middlename","lastname","dob","gender","salary")
+
+val df=spark.createDataFrame(data).toDF(columns:_*)
+
+df.printSchema()
+df.show(false)
+
+
+
+df.write.orc("data.orc")
+
+
+df.write.format("orc").save("/tmp/orc/data.orc")  === otherway to write
+
+
+----------------------------------------------------------
+Partition
+
+val parDF=spark.read.orc("data.orc/gender=M")
+parDF.show(false)
+
+
